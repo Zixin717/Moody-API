@@ -1,0 +1,6 @@
+@Moody_backend_HostAddress = http://localhost:5066
+
+GET {{Moody_backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
