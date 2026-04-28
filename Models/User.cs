@@ -8,5 +8,8 @@
         public string Phone    { get; set; }
         public string Nickname { get; set; }
         public string birthday { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // 建立時間
+
+
     }
 }

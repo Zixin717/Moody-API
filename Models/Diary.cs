@@ -8,5 +8,8 @@
         public string Mood { get; set; }
         public string Content { get; set; }
         public string Color { get; set; }    // 預期結果 -> "#D4E2A5"
+        // public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // 建立時間
+
+
     }
 }
