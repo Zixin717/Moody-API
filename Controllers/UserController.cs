@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Moody_backend.Data;     // 引入 Data -> 才能讀懂 AppDbContext
 using Moody_backend.Models;
+using System.Net;
 using System.Threading.Tasks; // 為了使用 async Task
 
 
@@ -89,6 +90,44 @@ namespace Moody_backend.Controllers
                     id = user.Id,
                     email = user.Email,
                     nickname = user.Nickname,
+                    birthday = user.birthday,
+                    phone = user.Phone
+                }
+            });
+        }
+
+
+        /* ===== Block 3: 更新個人資料 ===== */
+        // 用 [HttpPut("{id}")] 代表要更新某個特定 ID 的用戶
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserRequest request)
+        {
+            // 3-1 去資料庫找這個用戶
+            var user = await _db.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound("找不到該用戶！");
+            }
+
+            // 3-2 將前端傳來的新資料，覆蓋掉資料庫裡的舊資料。
+            user.Nickname = request.Nickname;
+            user.Email = request.Email;
+            user.Phone = request.Phone;
+            user.birthday = request.Birthday;
+
+            // 3-3 儲存變更 -> 這行會自動產生 SQL 的 UPDATE 指令
+            await _db.SaveChangesAsync();
+
+            // 3-4 回傳更新後的最新資料給前端
+            return Ok(new
+            {
+                message = "資料更新成功！",
+                user = new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    nickname = user.Nickname,
+                    phone = user.Phone,
                     birthday = user.birthday
                 }
             });
@@ -102,5 +141,17 @@ namespace Moody_backend.Controllers
         public string Email { get; set; }
         public string Password { get; set; }
     }
+
+    /* ===== Block 3: 更新 ===== */
+    // 用來接更新資料的類別
+    public class UpdateUserRequest
+    {
+        public string Nickname { get; set; }
+        public string Email { get; set; }
+        public string Phone { get; set; }
+        public string Birthday { get; set; }
+    }
+
+    public class LoginOut { }
 
 }
