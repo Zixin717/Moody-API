@@ -9,6 +9,8 @@
         public string Nickname { get; set; }
         public string birthday { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // 建立時間
+        public string? ResetCode { get; set; }             // 驗證碼
+        public DateTime? ResetCodeExpiration { get; set; } // 驗證碼保留時間
 
 
     }
