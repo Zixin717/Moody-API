@@ -12,5 +12,6 @@ namespace Moody_backend.Data
 
         // DbSet<User> = 代表資料庫裡的 Users 資料表
         public DbSet<User> Users { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
     }
 }

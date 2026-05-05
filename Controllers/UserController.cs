@@ -1,11 +1,16 @@
-﻿using BCrypt.Net;             // 引入加密套件
-using Microsoft.AspNetCore.Identity.Data;
+﻿using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
-using Moody_backend.Data;     // 引入 Data -> 才能讀懂 AppDbContext
-using Moody_backend.Models;
+using Microsoft.EntityFrameworkCore; // SaveChangesAsync
+
 using System.Net;
 using System.Net.Mail;        // 寄信套件
-using System.Threading.Tasks; // 為了使用 async Task
+using System.Threading.Tasks; // async Task
+
+using BCrypt.Net;             // 加密套件
+
+using Moody_backend.Data;     // 引入 Data -> 才能讀懂 AppDbContext
+using Moody_backend.Models;
+
 
 
 
@@ -56,14 +61,14 @@ namespace Moody_backend.Controllers
             Console.WriteLine($"原始密碼已銷毀，加密後密碼: {newUser.Password}");
 
             // 經過 SaveChangesAsync 之後，資料庫配發了真實的ID。
-            Console.WriteLine($"建立時間為 {newUser.CreatedAt}，資料庫已自動設置真實 ID: {newUser.Id}。");
+            Console.WriteLine($"建立時間為 {newUser.CreatedAt}，資料庫已自動設置真實 ID: {newUser.UserId}。");
             Console.WriteLine($"========================\n");
 
             /* 1-6 回傳結果給前端 */
             return Ok(new
             {
                 message = "註冊成功！資料已寫入資料庫。",
-                userId = newUser.Id,         // 把真實的 ID 傳給前端看看
+                userId = newUser.UserId,         // 把真實的 ID 傳給前端看看
                 userEmail = newUser.Email,
                 hashedPw = newUser.Password, // 測試用，正式上線記得拿掉
                 buildTime = newUser.CreatedAt
@@ -90,7 +95,7 @@ namespace Moody_backend.Controllers
                 message = "登入成功！",
                 user = new
                 {
-                    id = user.Id,
+                    id = user.UserId,
                     email = user.Email,
                     nickname = user.Nickname,
                     birthday = user.birthday,
@@ -127,7 +132,7 @@ namespace Moody_backend.Controllers
                 message = "資料更新成功！",
                 user = new
                 {
-                    id = user.Id,
+                    id = user.UserId,
                     email = user.Email,
                     nickname = user.Nickname,
                     phone = user.Phone,
@@ -141,7 +146,7 @@ namespace Moody_backend.Controllers
         public IActionResult VerifyPassword([FromBody] VerifyPasswordRequest request)
         {
             // 1. 從資料庫找到該用戶
-            var user = _db.Users.FirstOrDefault(u => u.Id == request.UserId);
+            var user = _db.Users.FirstOrDefault(u => u.UserId == request.UserId);
             if (user == null)
             {
                 return NotFound("找不到該用戶");
@@ -162,7 +167,7 @@ namespace Moody_backend.Controllers
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
             // 1. 從資料庫找到該用戶
-            var user = _db.Users.FirstOrDefault(u => u.Id == request.UserId);
+            var user = _db.Users.FirstOrDefault(u => u.UserId == request.UserId);
             if (user == null)
             {
                 return NotFound("找不到該用戶");
@@ -278,6 +283,21 @@ namespace Moody_backend.Controllers
             return Ok(new { message = "密碼重設成功，請使用新密碼登入" });
         }
 
+        /* ===== Block 9: 更新系統設定 -> 主題切換、通知設定 ===== */
+        [HttpPut("update-settings/{userId}")]
+        public async Task<IActionResult> UpdateSettings(int userId, [FromBody] UpdateSettingsRequest request)
+        {
+            var user = await _db.Users.FindAsync(userId);
+            if (user == null) return NotFound("找不到該用戶！");
+
+            // 只更新設定欄位
+            user.IsNotificationEnabled = request.IsNotificationEnabled;
+            user.Theme = request.Theme;
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "設定已自動儲存", user });
+        }
 
 
 
@@ -315,11 +335,16 @@ namespace Moody_backend.Controllers
         public string NewPassword { get; set; }
     }
 
-    /* ===== 忘記密碼專用 Request ===== */
+    /* ===== Request：忘記密碼 ===== */
     public class ForgotPasswordRequest { public string Email { get; set; } }
     public class VerifyCodeRequest { public string Email { get; set; } public string Code { get; set; } }
     public class ResetPasswordRequest { public string Email { get; set; } public string Code { get; set; } public string NewPassword { get; set; } }
 
-
+    /* ===== Request：更新系統設定 ===== */
+    public class UpdateSettingsRequest
+    {
+        public bool IsNotificationEnabled { get; set; }
+        public string Theme { get; set; }
+    }
 
 }
