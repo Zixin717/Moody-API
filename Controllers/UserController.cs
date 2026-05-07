@@ -76,15 +76,15 @@ namespace Moody_backend.Controllers
         }
 
         /* ===== Block 2: 登入 ===== */
-        // 真實登入 API
+        // 登入 API
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequest request)
         {
-            /* 2-1 去資料庫找找看有沒有這個 Email */
+            /* 2-1 資料庫撈 Email */
             var user = _db.Users.FirstOrDefault(u => u.Email == request.Email);
 
-            /* 2-2 找不到 Email，或者 驗證密碼 (Verify) 失敗 -> 回傳 401 未授權 */
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            /* 2-2 撈不到 Email || 帳號已刪除      || 驗證密碼 (Verify) 失敗 -> 回傳 401 未授權 */
+            if (user == null   || user.IsDeleted || !BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
             {
                 return Unauthorized("信箱或密碼錯誤！");
             }
@@ -299,10 +299,22 @@ namespace Moody_backend.Controllers
             return Ok(new { message = "設定已自動儲存", user });
         }
 
-
-
+        /* ===== Block 10: 帳戶刪除（隱藏狀態） ===== */
+        [HttpPut("delete/{userId}")]
+        public async Task<IActionResult> DeleteAccount(int userId)
+        {
+            var user = await _db.Users.FindAsync(userId);
+            if (user == null || user.IsDeleted)
+            {
+                return NotFound("找不到該用戶！");
+            }
+            // 改一個狀態欄位，讓前端知道這個帳號已被刪除，不能再登入。
+            user.IsDeleted = true;
+            user.DeletedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "帳戶已刪除（隱藏狀態）" });
+        }
     }
-
     /* ===== Request：登入 ===== */
     // 專門用來接登入資料的小類別 (放在 UserController 外面，同一個檔案即可)
     public class LoginRequest
@@ -346,5 +358,7 @@ namespace Moody_backend.Controllers
         public bool IsNotificationEnabled { get; set; }
         public string Theme { get; set; }
     }
+
+    
 
 }

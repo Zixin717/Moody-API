@@ -13,7 +13,8 @@
         public DateTime? ResetCodeExpiration { get; set; } // 驗證碼保留時間
         public bool IsNotificationEnabled { get; set; } = true; // 預設開啟
         public string Theme { get; set; } = "Beige";            // 主題
-
+        public bool IsDeleted { get; set; } = false;            // 帳號狀態 -> 未刪除
+        public DateTime? DeletedAt { get; set; }                // 刪除時間
 
     }
 }
