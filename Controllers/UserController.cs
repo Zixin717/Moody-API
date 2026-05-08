@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.Data;
+﻿// using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; // SaveChangesAsync
 
@@ -31,46 +31,34 @@ namespace Moody_backend.Controllers
         /* ===== Block 1: 註冊 ===== */
         // ※ 這裡加上 async Task -> 存取資料庫需要一點時間，讓它非同步執行才不會卡住。
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] User newUser)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            /* 1-1 檢查資料是否填寫 */
-            if (string.IsNullOrEmpty(newUser.Email) || string.IsNullOrEmpty(newUser.Password))
-            {
+            if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
                 return BadRequest("Email and Password are required.");
-            }
 
-            /* 1-2 檢查 Email 是否已被註冊 (防止重複帳號) */
-            // 去 Users 表 裡面找，是否有用戶的 Email 跟現在要註冊的一樣。
-            bool emailExists = _db.Users.Any(u => u.Email == newUser.Email);
-            if (emailExists)
+            bool emailExists = _db.Users.Any(u => u.Email == request.Email);
+            if (emailExists) return Conflict("此 Email 已被註冊！");
+
+            // 手動把 DTO 轉成 User Model
+            var newUser = new User
             {
-                return Conflict("此 Email 已被註冊！"); // 409 Conflict 狀態碼
-            }
+                Email = request.Email,
+                Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                Phone = string.IsNullOrWhiteSpace(request.Phone) ? "未填寫" : request.Phone,
+                Nickname = string.IsNullOrWhiteSpace(request.Nickname) ? "未填寫" : request.Nickname,
+                birthday = DateTime.TryParse(request.Birthday, out var parsedDate)
+                            ? parsedDate // 轉換成功給 DateTime
+                            : null,      // 轉換失敗給 未填寫
+            };
 
-            /* 1-3 密碼加密 */
-            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(newUser.Password);
-            newUser.Password = hashedPassword; // 把原本的明碼替換成加密後的密碼
+            _db.Users.Add(newUser);
+            await _db.SaveChangesAsync();
 
-            /* 1-4 寫入資料庫 */
-            _db.Users.Add(newUser);          // 1. 先把這筆新資料放到路線上
-            await _db.SaveChangesAsync();    // 2. 真正執行 SQL INSERT
-
-            /* 1-5 終端機測試紀錄 */
-            Console.WriteLine($"\n=== 收到新用戶註冊！ ===");
-            Console.WriteLine($"Email: {newUser.Email}");
-            Console.WriteLine($"原始密碼已銷毀，加密後密碼: {newUser.Password}");
-
-            // 經過 SaveChangesAsync 之後，資料庫配發了真實的ID。
-            Console.WriteLine($"建立時間為 {newUser.CreatedAt}，資料庫已自動設置真實 ID: {newUser.UserId}。");
-            Console.WriteLine($"========================\n");
-
-            /* 1-6 回傳結果給前端 */
             return Ok(new
             {
-                message = "註冊成功！資料已寫入資料庫。",
-                userId = newUser.UserId,         // 把真實的 ID 傳給前端看看
-                userEmail = newUser.Email,
-                hashedPw = newUser.Password, // 測試用，正式上線記得拿掉
+                message = "註冊成功！",
+                userId = newUser.UserId,
+                email = newUser.Email,
                 buildTime = newUser.CreatedAt
             });
         }
@@ -121,7 +109,9 @@ namespace Moody_backend.Controllers
             user.Nickname = request.Nickname;
             user.Email = request.Email;
             user.Phone = request.Phone;
-            user.birthday = request.Birthday;
+            user.birthday = DateTime.TryParse(request.Birthday, out var parsedDate)
+                            ? parsedDate // 轉換成功給 DateTime
+                            : null;      // 轉換失敗給 未填寫
 
             // 3-3 儲存變更 -> 這行會自動產生 SQL 的 UPDATE 指令
             await _db.SaveChangesAsync();
@@ -136,7 +126,7 @@ namespace Moody_backend.Controllers
                     email = user.Email,
                     nickname = user.Nickname,
                     phone = user.Phone,
-                    birthday = user.birthday
+                    // birthday = user.birthday
                 }
             });
         }
@@ -226,8 +216,8 @@ namespace Moody_backend.Controllers
                 using (SmtpClient smtp = new SmtpClient("smtp.gmail.com", 587))
                 {
                     smtp.Credentials = new NetworkCredential(systemEmail, systemAppPassword);
-                    smtp.EnableSsl = true;          // 必須開啟加密
-                    await smtp.SendMailAsync(mail); // 發射信件！
+                    smtp.EnableSsl = true;          // 開啟加密
+                    await smtp.SendMailAsync(mail); // 發信
                 }
 
                 return Ok(new { message = "驗證碼已寄出，請至信箱收取" });
@@ -330,7 +320,7 @@ namespace Moody_backend.Controllers
         public string Nickname { get; set; }
         public string Email { get; set; }
         public string Phone { get; set; }
-        public string Birthday { get; set; }
+        public string? Birthday { get; set; }
     }
 
     /* ===== Request：改密碼 ===== */

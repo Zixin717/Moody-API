@@ -1,6 +1,7 @@
 ﻿// Data/AppDbContext.cs
 using Microsoft.EntityFrameworkCore;
 using Moody_backend.Models;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Moody_backend.Data
 {
@@ -13,5 +14,13 @@ namespace Moody_backend.Data
         // DbSet<User> = 代表資料庫裡的 Users 資料表
         public DbSet<User> Users { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<User>().ToTable("User");
+        }
+
+        [Column(TypeName = "date")]
+        public DateTime? birthday { get; set; }
     }
 }
