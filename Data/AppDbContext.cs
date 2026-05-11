@@ -21,6 +21,10 @@ namespace Moody_backend.Data
         public DbSet<Tag> Tags { get; set; }
         public DbSet<Mood> Moods { get; set; }
         public DbSet<DiaryMoodSelection> DiaryMoodSelections { get; set; }
+        public DbSet<HabitTask> HabitTasks { get; set; }
+        public DbSet<DiaryMedia> DiaryMedias { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -29,6 +33,9 @@ namespace Moody_backend.Data
             modelBuilder.Entity<Diary>().ToTable("Diary");
             modelBuilder.Entity<DiaryNormal>().ToTable("DiaryNormal");
             modelBuilder.Entity<DiaryMood>().ToTable("DiaryMood");
+            modelBuilder.Entity<HabitTask>().ToTable("task");
+            modelBuilder.Entity<DiaryMedia>().ToTable("DiaryMedia");
+
 
             // Diary 和 DiaryNormal 是一對一的關係，DiaryId 同時是 DiaryNormal 的主鍵和外鍵。
             modelBuilder.Entity<Diary>()

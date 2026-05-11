@@ -46,7 +46,7 @@ namespace Moody_backend
 
             app.UseHttpsRedirection();
             app.UseCors("AllowReact");  // 啟用 CORS 政策 -> 這行要放在 UseAuthorization 前面
-
+            app.UseStaticFiles();
             app.UseAuthorization();
             app.MapControllers();
             app.Run();
