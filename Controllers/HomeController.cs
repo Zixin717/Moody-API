@@ -10,10 +10,10 @@ namespace Moody_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DiaryController : ControllerBase
+    public class HomeController : ControllerBase
     {
         private readonly AppDbContext _db;
-        public DiaryController(AppDbContext db)
+        public HomeController(AppDbContext db)
         {
             _db = db;
         }
